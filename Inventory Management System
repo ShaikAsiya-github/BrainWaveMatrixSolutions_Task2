@@ -1,0 +1,164 @@
+import tkinter as tk
+from tkinter import messagebox
+import tkinter.simpledialog as simpledialog
+import json
+
+# Sample inventory data (this could be loaded from a database or a file in a real application)
+inventory = {
+    "P001": {"name": "Laptop", "quantity": 10, "price": 800.0, "category": "Electronics"},
+    "P002": {"name": "Keyboard", "quantity": 50, "price": 30.0, "category": "Accessories"},
+}
+
+# Simple authentication
+users = {"admin": "password123"}
+
+# Function to validate product data
+def validate_product_data(product_id, name, quantity, price, category):
+    if not product_id or not name or not category:
+        return "Product ID, name, and category are required."
+    if not quantity.isdigit() or int(quantity) < 0:
+        return "Quantity must be a positive integer."
+    if not price.replace('.', '', 1).isdigit() or float(price) <= 0:
+        return "Price must be a positive number."
+    return None
+
+# Function to add a product to the inventory
+def add_product(product_id, name, quantity, price, category):
+    error = validate_product_data(product_id, name, quantity, price, category)
+    if error:
+        messagebox.showerror("Error", error)
+        return
+    inventory[product_id] = {
+        "name": name,
+        "quantity": int(quantity),
+        "price": float(price),
+        "category": category
+    }
+    messagebox.showinfo("Success", f"Product '{name}' added successfully!")
+
+# Function to edit an existing product
+def edit_product(product_id, name, quantity, price, category):
+    if product_id not in inventory:
+        messagebox.showerror("Error", "Product not found.")
+        return
+    error = validate_product_data(product_id, name, quantity, price, category)
+    if error:
+        messagebox.showerror("Error", error)
+        return
+    inventory[product_id] = {
+        "name": name,
+        "quantity": int(quantity),
+        "price": float(price),
+        "category": category
+    }
+    messagebox.showinfo("Success", f"Product '{name}' updated successfully!")
+
+# Function to delete a product
+def delete_product(product_id):
+    if product_id not in inventory:
+        messagebox.showerror("Error", "Product not found.")
+        return
+    del inventory[product_id]
+    messagebox.showinfo("Success", f"Product '{product_id}' deleted successfully!")
+
+# Function to generate low-stock alert
+def low_stock_alert():
+    low_stock_products = [product for product, details in inventory.items() if details["quantity"] < 5]
+    if low_stock_products:
+        message = "Low stock alerts for the following products:\n"
+        for product_id in low_stock_products:
+            message += f"{inventory[product_id]['name']} (ID: {product_id}) - Quantity: {inventory[product_id]['quantity']}\n"
+        messagebox.showinfo("Low Stock Alert", message)
+    else:
+        messagebox.showinfo("Low Stock Alert", "No products are low on stock.")
+
+# Function to generate a sales summary report
+def sales_summary():
+    total_value = sum(details["price"] * details["quantity"] for details in inventory.values())
+    messagebox.showinfo("Sales Summary", f"Total Inventory Value: ${total_value:.2f}")
+
+# Simple login function
+def login(username, password):
+    if username in users and users[username] == password:
+        return True
+    return False
+
+# GUI for the Inventory Management System
+class InventoryApp:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Inventory Management System")
+
+        # Login frame
+        self.login_frame = tk.Frame(root)
+        self.login_frame.pack()
+
+        self.username_label = tk.Label(self.login_frame, text="Username:")
+        self.username_label.grid(row=0, column=0)
+        self.username_entry = tk.Entry(self.login_frame)
+        self.username_entry.grid(row=0, column=1)
+
+        self.password_label = tk.Label(self.login_frame, text="Password:")
+        self.password_label.grid(row=1, column=0)
+        self.password_entry = tk.Entry(self.login_frame, show="*")
+        self.password_entry.grid(row=1, column=1)
+
+        self.login_button = tk.Button(self.login_frame, text="Login", command=self.handle_login)
+        self.login_button.grid(row=2, column=0, columnspan=2)
+
+    def handle_login(self):
+        username = self.username_entry.get()
+        password = self.password_entry.get()
+
+        if login(username, password):
+            self.login_frame.pack_forget()
+            self.show_main_window()
+        else:
+            messagebox.showerror("Login Failed", "Invalid username or password")
+
+    def show_main_window(self):
+        # Main window content
+        self.main_frame = tk.Frame(self.root)
+        self.main_frame.pack()
+
+        self.add_product_button = tk.Button(self.main_frame, text="Add Product", command=self.add_product)
+        self.add_product_button.pack()
+
+        self.edit_product_button = tk.Button(self.main_frame, text="Edit Product", command=self.edit_product)
+        self.edit_product_button.pack()
+
+        self.delete_product_button = tk.Button(self.main_frame, text="Delete Product", command=self.delete_product)
+        self.delete_product_button.pack()
+
+        self.low_stock_button = tk.Button(self.main_frame, text="Low Stock Alerts", command=low_stock_alert)
+        self.low_stock_button.pack()
+
+        self.sales_summary_button = tk.Button(self.main_frame, text="Sales Summary", command=sales_summary)
+        self.sales_summary_button.pack()
+
+    def add_product(self):
+        # Functionality to add a product via a popup form
+        self.product_form("Add Product", add_product)
+
+    def edit_product(self):
+        # Functionality to edit a product via a popup form
+        self.product_form("Edit Product", edit_product)
+
+    def delete_product(self):
+        product_id = tk.simpledialog.askstring("Delete Product", "Enter Product ID to delete:")
+        delete_product(product_id)
+
+    def product_form(self, title, action):
+        product_id = tk.simpledialog.askstring(title, "Enter Product ID:")
+        name = tk.simpledialog.askstring(title, "Enter Product Name:")
+        quantity = tk.simpledialog.askstring(title, "Enter Quantity:")
+        price = tk.simpledialog.askstring(title, "Enter Price:")
+        category = tk.simpledialog.askstring(title, "Enter Category:")
+
+        action(product_id, name, quantity, price, category)
+
+# Main execution
+if __name__ == "__main__":
+    root = tk.Tk()
+    app = InventoryApp(root)
+    root.mainloop()
